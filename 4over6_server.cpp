@@ -218,19 +218,19 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
             case 102: {
                 fprintf(stderr, "Recv an 102 request pack_len=%d, read n=%d\n", msg.hdr.length, n);
 
-                char *buf = (char *) msg.ipv4_payload;
-                char ip[4];
-                memcpy(ip, &buf[12], 4);
-                memcpy(&buf[12], &buf[16], 4);
-                memcpy(&buf[16], ip, 4);
-                buf[20] = 0;
-                *((unsigned short *) &buf[22]) += 8;
-                printf("read %d bytes\n", msg.hdr.length);
-                msg.hdr.type = 103;
-                int ret = Write_nByte(fd, (char *) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
-                printf("write %d bytes\n", ret);
+//                char *buf = (char *) msg.ipv4_payload;
+//                char ip[4];
+//                memcpy(ip, &buf[12], 4);
+//                memcpy(&buf[12], &buf[16], 4);
+//                memcpy(&buf[16], ip, 4);
+//                buf[20] = 0;
+//                *((unsigned short *) &buf[22]) += 8;
+//                printf("read %d bytes\n", msg.hdr.length);
+//                msg.hdr.type = 103;
+//                int ret = Write_nByte(fd, (char *) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
+//                printf("write %d bytes\n", ret);
 
-                //do_ipv4_packet_request(fd, rawfd, &msg);
+                do_ipv4_packet_request(fd, rawfd, &msg);
                 break;
             }
             case 103: {

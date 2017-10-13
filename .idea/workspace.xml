@@ -12,40 +12,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="487c19af-d423-46f2-84c9-e1b35fceb03c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tundemo.cpp" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CMakeCCompiler.cmake" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CMakeCXXCompiler.cmake" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CMakeDetermineCompilerABI_C.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CMakeDetermineCompilerABI_CXX.bin" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CMakeSystem.cmake" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CompilerIdC/CMakeCCompilerId.c" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CompilerIdC/a.out" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CompilerIdCXX/CMakeCXXCompilerId.cpp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.6.2/CompilerIdCXX/a.out" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/test_client.cpp" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main" afterPath="$PROJECT_DIR$/main" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/4over6_server.cpp" afterPath="$PROJECT_DIR$/4over6_server.cpp" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/4over6_util.cpp" afterPath="$PROJECT_DIR$/4over6_util.cpp" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/4over6_util.h" afterPath="$PROJECT_DIR$/4over6_util.h" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/CMakeLists.txt" afterPath="$PROJECT_DIR$/CMakeLists.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Makefile" afterPath="$PROJECT_DIR$/Makefile" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/4over6.cbp" afterPath="$PROJECT_DIR$/cmake-build-debug/4over6.cbp" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeCache.txt" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeCache.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/4over6.dir/build.make" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/4over6.dir/build.make" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/4over6.dir/flags.make" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/4over6.dir/flags.make" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeDirectoryInformation.cmake" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeDirectoryInformation.cmake" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeOutput.log" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeOutput.log" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile.cmake" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile.cmake" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile2" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile2" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/TargetDirectories.txt" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/TargetDirectories.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-environment.txt" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-environment.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-log.txt" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-log.txt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/feature_tests.c" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/feature_tests.c" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/progress.marks" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/progress.marks" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/Makefile" afterPath="$PROJECT_DIR$/cmake-build-debug/Makefile" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmake-build-debug/cmake_install.cmake" afterPath="$PROJECT_DIR$/cmake-build-debug/cmake_install.cmake" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main.cpp" afterPath="$PROJECT_DIR$/main.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tundemo.cpp" afterPath="$PROJECT_DIR$/tundemo.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/unp.h" afterPath="$PROJECT_DIR$/unp.h" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -67,7 +37,7 @@
         <entry file="file://$PROJECT_DIR$/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="252">
-              <caret line="14" column="0" lean-forward="true" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+              <caret line="14" column="0" lean-forward="false" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
               <folding>
                 <element signature="e#0#24#0" expanded="true" />
               </folding>
@@ -78,33 +48,42 @@
       <file leaf-file-name="tundemo.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tundemo.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-564">
-              <caret line="205" column="70" lean-forward="false" selection-start-line="205" selection-start-column="70" selection-end-line="205" selection-end-column="70" />
+            <state relative-caret-position="401">
+              <caret line="85" column="29" lean-forward="true" selection-start-line="85" selection-start-column="29" selection-end-line="85" selection-end-column="29" />
               <folding>
                 <element signature="e#600#1220#0" expanded="false" />
-                <element signature="e#1222#2097#0" expanded="false" />
-                <element signature="e#2100#3298#0" expanded="false" />
-                <element signature="e#3301#3879#0" expanded="false" />
-                <element signature="e#7841#8210#0" expanded="false" />
-                <element signature="e#8211#8747#0" expanded="false" />
-                <element signature="e#8748#9098#0" expanded="false" />
-                <element signature="e#9099#9288#0" expanded="false" />
+                <element signature="e#2110#3308#0" expanded="false" />
+                <element signature="e#3311#3889#0" expanded="false" />
+                <element signature="e#3891#4732#0" expanded="false" />
+                <element signature="e#7851#8220#0" expanded="false" />
+                <element signature="e#8221#8757#0" expanded="false" />
+                <element signature="e#8758#9108#0" expanded="false" />
+                <element signature="e#9109#9298#0" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="4over6_server.cpp" pinned="false" current-in-tab="true">
+      <file leaf-file-name="4over6_server.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/4over6_server.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="102">
-              <caret line="212" column="0" lean-forward="false" selection-start-line="212" selection-start-column="0" selection-end-line="212" selection-end-column="0" />
+            <state relative-caret-position="4194">
+              <caret line="290" column="5" lean-forward="false" selection-start-line="290" selection-start-column="5" selection-end-line="290" selection-end-column="5" />
               <folding>
                 <element signature="e#625#1642#0" expanded="false" />
-                <element signature="e#9122#10438#0" expanded="false" />
-                <element signature="e#10440#11706#0" expanded="false" />
-                <element signature="e#11708#11949#0" expanded="false" />
+                <element signature="e#9142#10458#0" expanded="false" />
+                <element signature="e#11728#11969#0" expanded="false" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="unp.h" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/unp.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="162">
+              <caret line="33" column="27" lean-forward="true" selection-start-line="33" selection-start-column="27" selection-end-line="33" selection-end-column="27" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -193,7 +172,6 @@
         <option value="$PROJECT_DIR$/error_check.cpp" />
         <option value="$PROJECT_DIR$/test_server_nat.h" />
         <option value="$PROJECT_DIR$/test_server_nat.cpp" />
-        <option value="$PROJECT_DIR$/unp.h" />
         <option value="$PROJECT_DIR$/test_ip_queue.cpp" />
         <option value="$PROJECT_DIR$/test_client.cpp" />
         <option value="$PROJECT_DIR$/out.1" />
@@ -205,8 +183,9 @@
         <option value="$PROJECT_DIR$/4over6_util.cpp" />
         <option value="$PROJECT_DIR$/4over6_util.h" />
         <option value="$PROJECT_DIR$/main.cpp" />
-        <option value="$PROJECT_DIR$/tundemo.cpp" />
+        <option value="$PROJECT_DIR$/unp.h" />
         <option value="$PROJECT_DIR$/4over6_server.cpp" />
+        <option value="$PROJECT_DIR$/tundemo.cpp" />
       </list>
     </option>
   </component>
@@ -497,12 +476,12 @@
       <workItem from="1507733405813" duration="604000" />
       <workItem from="1507773950767" duration="12775000" />
       <workItem from="1507864678769" duration="714000" />
-      <workItem from="1507871549571" duration="811000" />
+      <workItem from="1507871549571" duration="4031000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="124453000" />
+    <option name="totallyTimeSpent" value="127673000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="52" width="1855" height="1028" extended-state="0" />
@@ -592,9 +571,8 @@
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#625#1642#0" expanded="false" />
-            <element signature="e#9122#10438#0" expanded="false" />
-            <element signature="e#10440#11706#0" expanded="false" />
-            <element signature="e#11708#11949#0" expanded="false" />
+            <element signature="e#9142#10458#0" expanded="false" />
+            <element signature="e#11728#11969#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -702,13 +680,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="201">
           <caret line="232" column="11" lean-forward="false" selection-start-line="232" selection-start-column="11" selection-end-line="232" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/unp.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="144">
-          <caret line="32" column="26" lean-forward="true" selection-start-line="32" selection-start-column="26" selection-end-line="32" selection-end-column="26" />
         </state>
       </provider>
     </entry>
@@ -879,27 +850,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tundemo.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-564">
-          <caret line="205" column="70" lean-forward="false" selection-start-line="205" selection-start-column="70" selection-end-line="205" selection-end-column="70" />
-          <folding>
-            <element signature="e#600#1220#0" expanded="false" />
-            <element signature="e#1222#2097#0" expanded="false" />
-            <element signature="e#2100#3298#0" expanded="false" />
-            <element signature="e#3301#3879#0" expanded="false" />
-            <element signature="e#7841#8210#0" expanded="false" />
-            <element signature="e#8211#8747#0" expanded="false" />
-            <element signature="e#8748#9098#0" expanded="false" />
-            <element signature="e#9099#9288#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="252">
-          <caret line="14" column="0" lean-forward="true" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+          <caret line="14" column="0" lean-forward="false" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
           <folding>
             <element signature="e#0#24#0" expanded="true" />
           </folding>
@@ -908,14 +862,38 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/4over6_server.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="102">
-          <caret line="212" column="0" lean-forward="false" selection-start-line="212" selection-start-column="0" selection-end-line="212" selection-end-column="0" />
+        <state relative-caret-position="4194">
+          <caret line="290" column="5" lean-forward="false" selection-start-line="290" selection-start-column="5" selection-end-line="290" selection-end-column="5" />
           <folding>
             <element signature="e#625#1642#0" expanded="false" />
-            <element signature="e#9122#10438#0" expanded="false" />
-            <element signature="e#10440#11706#0" expanded="false" />
-            <element signature="e#11708#11949#0" expanded="false" />
+            <element signature="e#9142#10458#0" expanded="false" />
+            <element signature="e#11728#11969#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tundemo.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="401">
+          <caret line="85" column="29" lean-forward="true" selection-start-line="85" selection-start-column="29" selection-end-line="85" selection-end-column="29" />
+          <folding>
+            <element signature="e#600#1220#0" expanded="false" />
+            <element signature="e#2110#3308#0" expanded="false" />
+            <element signature="e#3311#3889#0" expanded="false" />
+            <element signature="e#3891#4732#0" expanded="false" />
+            <element signature="e#7851#8220#0" expanded="false" />
+            <element signature="e#8221#8757#0" expanded="false" />
+            <element signature="e#8758#9108#0" expanded="false" />
+            <element signature="e#9109#9298#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/unp.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="33" column="27" lean-forward="true" selection-start-line="33" selection-start-column="27" selection-end-line="33" selection-end-column="27" />
+          <folding />
         </state>
       </provider>
     </entry>

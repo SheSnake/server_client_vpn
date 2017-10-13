@@ -80,11 +80,11 @@ int route_add(char * interface_name)
     memset(&rt, 0, sizeof(rt));
 
     genmask.sin_family = AF_INET;
-    genmask.sin_addr.s_addr = inet_addr("255.0.0.0");
+    genmask.sin_addr.s_addr = inet_addr("255.255.255.255");
 
     bzero(&dst,sizeof(struct sockaddr_in));
     dst.sin_family = AF_INET;
-    dst.sin_addr.s_addr = inet_addr("192.0.0.0");
+    dst.sin_addr.s_addr = inet_addr("119.75.213.61");
 
     rt.rt_metric = 2;
     rt.rt_dst = *(struct sockaddr*) &dst;
