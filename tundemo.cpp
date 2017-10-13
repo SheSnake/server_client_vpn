@@ -84,7 +84,7 @@ int route_add(char * interface_name)
 
     bzero(&dst,sizeof(struct sockaddr_in));
     dst.sin_family = AF_INET;
-    dst.sin_addr.s_addr = inet_addr("119.75.213.61");
+    dst.sin_addr.s_addr = inet_addr("216.58.194.196");
 
     rt.rt_metric = 2;
     rt.rt_dst = *(struct sockaddr*) &dst;

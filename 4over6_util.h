@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <map>
 
-#define MAX_IPV4_PAYLOAD 1024
+#define MAX_IPV4_PAYLOAD 4096
 #define MAX_COUNTER 10
 #define MAX_TIME_DUR 30
 #define USED 1
