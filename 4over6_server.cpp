@@ -1,0 +1,338 @@
+//
+// Created by dalaoshe on 17-4-13.
+//
+#include "4over6_util.h"
+#define MAX_BACKLOG 20
+static struct User_Tables user_tables;
+
+int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, socklen_t *len);
+void reply_ipv4_request(int fd, sockaddr_in* client_addr, socklen_t* clientlen);
+void do_ipv4_packet_request(int fd, int rawfd, struct Msg* msg);
+void do_keep_alive(int fd);
+
+static struct sockaddr_in server_addr, client_addr;
+static int i, maxi, maxfd, connfd, sockfd, raw_udp_fd, raw_tcp_fd, raw_out_fd;
+static int nready, client[FD_SETSIZE];
+static fd_set rset, allset;
+pthread_mutex_t allset_mutex;
+
+void process_packet(char* buffer , uint32_t size)
+{
+    static struct Msg msg;
+    struct iphdr *iph = (struct iphdr*)buffer;
+    User_Info* info = user_tables.get_user_info_by_v4(iph->daddr);
+    char buf[16],buf2[16];
+    Inet_ntop(AF_INET, &iph->daddr, buf,sizeof(buf));
+    Inet_ntop(AF_INET, &iph->saddr, buf2,sizeof(buf2));
+    if(iph->protocol == 6 && info != NULL)
+        fprintf(stderr,"recev tcp packet from ip_v4: %s should sent to ip_v4: %s \n",buf2, buf);
+    else if(info != NULL)
+        fprintf(stderr,"recev udp packet from ip_v4: %s should sent to ip_v4: %s \n",buf2, buf);
+
+    if(info == NULL || info->state == FREE)return;
+    fprintf(stderr," ---- recev an valid packet from ip_v4: %s should sent to ip_v4: %s   ---- \n",buf2, buf);
+
+
+
+    memset(&msg, 0, sizeof(struct Msg));
+    msg.hdr.type = 103;
+    msg.hdr.length = size;
+    memcpy(msg.ipv4_payload, buffer, size);
+
+    int fd = info->fd;
+    if(fd != -1)
+        Write_nByte(fd, (char*)&msg, sizeof(struct Msg_Hdr) + msg.hdr.length);
+
+}
+
+void do_server(char* server_ip, char* server_port) {
+
+
+    memset(&server_addr, 0, sizeof(struct sockaddr_in));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(atoi(server_port));
+    Inet_pton(AF_INET, server_ip, &server_addr.sin_addr.s_addr);
+    socklen_t client_addr_len = sizeof(struct sockaddr_in);
+
+
+    int listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+
+
+    int on = 1;
+    SetSocket(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    Bind_Socket(listenfd, (SA*)&server_addr, sizeof(struct sockaddr_in));
+    Listen(listenfd, MAX_BACKLOG);
+
+    int raw_tcp_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    int raw_udp_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+    int raw_out_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
+    SetSocket(raw_udp_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+    SetSocket(raw_tcp_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+    SetSocket(raw_out_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+    struct sockaddr addr;
+    char buf[65536];
+    int datasize;
+    socklen_t saddr_size =  sizeof(addr);
+    maxfd = raw_udp_fd;
+    maxi = -1;
+
+    for(i = 0; i < FD_SETSIZE; ++i) client[i] = -1;
+    FD_ZERO(&allset);
+    FD_SET(listenfd, &allset);
+    FD_SET(raw_tcp_fd, &allset);
+    FD_SET(raw_udp_fd, &allset);
+
+    in_addr star;
+    in_addr end;
+    Inet_pton(AF_INET,"10.0.0.3",&star);
+    Inet_pton(AF_INET,"10.0.0.254",&end);
+    user_tables.init_ipv4_pool(star, end);
+
+    keep_alive_thread_argv argv;
+    argv.allset = &allset;
+    argv.client = client;
+    argv.table = &user_tables;
+    pthread_t keep_alive;
+    pthread_create(&keep_alive, NULL, &keep_alive_thread, (void*)&argv);
+
+
+    while (1) {
+        rset = allset;
+        nready = Select(maxfd+1, &rset, NULL, NULL, NULL);
+        if(FD_ISSET(listenfd, &rset)) {// 接收一个新的连接
+            connfd = Accept(listenfd, (SA*)&client_addr, &client_addr_len);
+            char ip[16];
+            Inet_ntop(AF_INET, &client_addr.sin_addr, ip, sizeof(ip));
+            fprintf(stderr, "A Client From IP:%s, Port %d, Socket %d\n",ip,client_addr.sin_port,connfd);
+            for(i = 0; i < FD_SETSIZE; ++i) {
+                if(client[i] == -1) {
+                    client[i] = connfd;
+                    break;
+                }
+            }
+            if(i == FD_SETSIZE) {
+                fprintf(stderr, "too many\n");
+            }
+
+            set_FD_SET(&allset, connfd, &allset_mutex);
+
+            if(connfd > maxfd) maxfd = connfd;
+            if(i > maxi) maxi = i;
+            if(--nready <= 0)continue;
+        }
+
+        if(FD_ISSET(raw_tcp_fd, &rset)) {
+            memset(buf, 0, sizeof(buf));
+            datasize = recvfrom(raw_tcp_fd, buf, 65536,0 ,&addr,&saddr_size );
+            process_packet(buf, datasize);
+        }
+        if(FD_ISSET(raw_udp_fd, &rset)) {
+            memset(buf, 0, sizeof(buf));
+            datasize = recvfrom(raw_udp_fd, buf, 65536,0 ,&addr,&saddr_size );
+            process_packet(buf, datasize);
+        }
+
+        for(i = 0 ; i <= maxi; ++i) {
+            if((sockfd = client[i]) < 0) {
+                continue;
+            }
+            if(FD_ISSET(sockfd, &rset)) { // 该socket有客户请求到达
+                fprintf(stderr, "Recv a request from fd %d\n", sockfd);
+                memset(&client_addr, 0, sizeof(client_addr));
+                socklen_t  len = sizeof(client_addr);
+                Getpeername(sockfd, (SA*)&client_addr, &len);
+
+                char ip[16];
+                Inet_ntop(AF_INET, &client_addr.sin_addr, ip, sizeof(ip));
+                fprintf(stderr, "Recv A Request From IP:%s, Port %d, Socket %d\n",ip,client_addr.sin_port,connfd);
+
+                int result = do_response(sockfd, raw_out_fd, i, &client_addr, &len);
+
+
+
+                if(result < 0) {//
+                    clr_FD_SET(&allset, sockfd, &allset_mutex);
+                    client[i] = -1;
+                    fprintf(stderr, "close client \n");
+
+                    user_tables.free_resource_of_fd(sockfd);
+                    fprintf(stderr,"close ok\n");
+                }
+                if(--nready <= 0)break;
+            }
+        }
+    }
+}
+
+int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, socklen_t *len) {
+    ssize_t n;
+    static struct Msg msg;
+    memset(&msg, 0, sizeof(struct Msg));
+    ssize_t needbs = sizeof(struct Msg_Hdr);
+
+    //n = recvfrom(fd, &msg, sizeof(struct Msg_Hdr),0, (SA*)client_addr, len);
+    n = read(fd, (char*)&msg, sizeof(struct Msg_Hdr));
+    if(n < 0) {
+        fprintf(stderr, "read sockfd %d error: %s \n",fd,strerror(errno));
+        Close(fd);
+        return -1;
+    }
+    else if(n == 0) {
+        fprintf(stderr, "close sockfd %d \n",fd);
+        Close(fd);
+        return -1;
+    }
+    else if(n == needbs){
+        process_payload:
+        uint8_t * ipv4_payload = msg.ipv4_payload;
+//        fprintf(stderr, "%d read request type:%d\n",n, msg.hdr.type);
+//        for(int i = 0 ; i < n; ++i) {
+//            fprintf(stderr, "%02X ", ((char*)&msg)[i]);
+//        }
+//        fprintf(stderr, "\n");
+        if(msg.hdr.type != 100 && msg.hdr.type != 104) {
+            n = read(fd, ipv4_payload, msg.hdr.length);
+            if(n != msg.hdr.length) {
+                fprintf(stderr, "read payload error, need %d byte, read %d byte\n",msg.hdr.length, n);
+                if(n <= 0) {
+                    Close(fd);
+                    return -1;
+                }
+            }
+            else {
+                if(msg.hdr.type == 102)
+                    fprintf(stderr, "read payload ok, need %d byte, read %d byte\n",msg.hdr.length, n);
+            }
+            while(n < msg.hdr.length)
+                n += read(fd, ipv4_payload+n, msg.hdr.length-n);
+        }
+
+        switch(msg.hdr.type){
+            case 100:
+                fprintf(stderr, "recv an 100 reqeust\n");
+                reply_ipv4_request(fd, client_addr, len);
+                fprintf(stderr, "reply an 100 reqeust over\n");
+                break;
+            case 101:
+                break;
+            case 102: {
+                fprintf(stderr, "Recv an 102 request pack_len=%d, read n=%d\n", msg.hdr.length, n);
+
+                char *buf = (char *) msg.ipv4_payload;
+                char ip[4];
+                memcpy(ip, &buf[12], 4);
+                memcpy(&buf[12], &buf[16], 4);
+                memcpy(&buf[16], ip, 4);
+                buf[20] = 0;
+                *((unsigned short *) &buf[22]) += 8;
+                printf("read %d bytes\n", msg.hdr.length);
+                msg.hdr.type = 103;
+                int ret = Write_nByte(fd, (char *) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
+                printf("write %d bytes\n", ret);
+
+                //do_ipv4_packet_request(fd, rawfd, &msg);
+                break;
+            }
+            case 103: {
+                break;
+            }
+            case 104:
+                fprintf(stderr,"recv an 104 live pack_len=%d %d\n",msg.hdr.length, n);
+                do_keep_alive(fd);
+                break;
+            default:
+                fprintf(stderr, "recv an error reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
+                break;
+        }
+    }
+    else {// 读到长度小于头长度说明可能出错(也有可能粘包,继续读取)
+        fprintf(stderr, "read %d byte, recv an error hdr\n", n);
+        while (n < sizeof(struct Msg_Hdr))
+            n += read(fd, (char*)&msg + n , sizeof(struct Msg_Hdr)-n);
+        fprintf(stderr, "recv an error hdr\n");
+        goto process_payload;
+    }
+    return 0;
+}
+
+void reply_ipv4_request(int fd, sockaddr_in* client_addr, socklen_t* clientlen) {
+    static struct Msg msg;
+    memset(&msg, 0, sizeof(struct Msg));
+    User_Info* info = user_tables.get_free_v4_addr();
+    if(info == NULL) {
+        return;
+    }
+    fprintf(stderr,"set user info\n");
+    //设置连接信息
+    info->setUserInfo(fd,client_addr->sin_addr);
+    fprintf(stderr,"set user info over\n");
+    user_tables.set_fd_info_map(fd,info);
+    fprintf(stderr,"set user table info over\n");
+
+    msg.hdr.type = 101;
+    Ipv4_Request_Reply *payload = (Ipv4_Request_Reply*)msg.ipv4_payload;
+    payload->addr_v4[0] = info->addr_v4;
+    Inet_pton(AF_INET,"0.0.0.0",&(payload->addr_v4[1])); // 注意得到的字节序
+    Inet_pton(AF_INET,"8.8.8.8",&(payload->addr_v4[2]));
+    Inet_pton(AF_INET,"202.38.120.242",&(payload->addr_v4[3]));
+    Inet_pton(AF_INET,"202.106.0.20",&(payload->addr_v4[4]));
+    msg.hdr.length = sizeof(struct Ipv4_Request_Reply);
+
+    info->mutex_write_FD((char*)&msg, sizeof(struct Msg_Hdr)+msg.hdr.length);
+//    ssize_t n = write(fd, &msg, sizeof(struct Msg_Hdr)+msg.hdr.length);
+//
+//    if(n != sizeof(struct Msg_Hdr)+msg.hdr.length) {
+//        fprintf(stderr, "write reply error, need %d byte, write %d byte\n",sizeof(struct Msg_Hdr)+msg.hdr.length, n);
+//        if(n <= 0)
+//            return;
+//    }
+}
+
+void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
+    iphdr* ipv4hdr = (iphdr*)(c_msg->ipv4_payload);
+    User_Info* info = user_tables.get_user_info_by_fd(fd);
+    if(info == NULL) {
+        return;
+    }
+    //
+    info->setLatestTime();
+    //获取目的地址
+
+    struct sockaddr_in dstaddr,srcaddr;
+    dstaddr.sin_addr.s_addr = ipv4hdr->daddr;
+    dstaddr.sin_family = AF_INET;
+    socklen_t addr_len = sizeof(struct sockaddr_in);
+
+    srcaddr.sin_addr.s_addr = ipv4hdr->saddr;
+    srcaddr.sin_family = AF_INET;
+
+
+    char buf[512],buf2[512];
+    Inet_ntop(AF_INET,&(srcaddr.sin_addr.s_addr), buf, sizeof(buf));
+    Inet_ntop(AF_INET,&(dstaddr.sin_addr.s_addr), buf2, sizeof(buf2));
+    fprintf(stderr,"\n\nRecv an ipv4 request(102) from %s to %s \n\n",buf , buf2);
+//    for(int i = 0 ; i < c_msg->hdr.length; ++i) {
+//        uint32_t temp = 0;
+//        temp = c_msg->ipv4_payload[i];
+//        fprintf(stderr,"%02x i:%d ",(temp),i);
+//    }
+//    fprintf(stderr,"\n\n");
+    ssize_t n = sendto(rawfd, c_msg->ipv4_payload, c_msg->hdr.length, 0, (SA*)&dstaddr, addr_len);
+
+    if(n != c_msg->hdr.length) {
+        fprintf(stderr, "write reply error, need %d byte, write %d byte\n",c_msg->hdr.length, n);
+        if(n <= 0)
+            return;
+    }
+}
+
+void do_keep_alive(int fd) {
+    static struct Msg msg;
+    memset(&msg, 0, sizeof(struct Msg));
+    User_Info* info = user_tables.get_user_info_by_fd(fd);
+    if(info == NULL) {
+        return;
+    }
+    info->setLatestTime();
+    return;
+}
