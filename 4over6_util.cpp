@@ -99,16 +99,17 @@ void User_Tables::init_ipv4_pool(in_addr start, in_addr end) {
         char buf[16];
         uint32_t tmp = htonl(i);
         Inet_ntop(AF_INET, &tmp, buf,sizeof(buf));
-        fprintf(stderr,"tun ip_v4: %s \n",buf);
-
+        fprintf(stderr,"if/ip: %s/%s \n",ifr.ifr_name,buf);
         char command[64];
         sprintf(command,"ifconfig %s %s/24",ifr.ifr_name, buf);
         system(command);
 
         this->v4_map_info.insert(pair<in_addr_t ,User_Info*>(htonl(i), info));
     }
-
-
+    char command[64];
+    fprintf(stderr,"-------------- SETUP NAT --------------\n");
+    sprintf(command,"sudo ./nat.sh");
+    system(command);
 
     this->fd_map_mutex = PTHREAD_MUTEX_INITIALIZER;
     this->pool_size = e - s + 1;

@@ -1,4 +1,4 @@
 IP=`ifconfig | grep 'inet .*:\(.*\..*\..*\..*\) \(.*:\(.*\..*\..*\..*\)\)\{2\}' | sed 's/inet .*:\(.*\..*\..*\..*\) \(.*:\(.*\..*\..*\..*\)\)\{2\}/\1/'`
 
-echo $IP
-sed -i "s/\(SNAT --to-source\)\(.*\.*\.*\.*\)/\1${IP}/g" test.sh
+#echo $IP
+sed -i "s/\(SNAT --to-source\)\(.*\.*\.*\.*\)/\1${IP}/g" nat.sh

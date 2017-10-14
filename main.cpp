@@ -1,13 +1,13 @@
 #include "4over6_util.h"
-#include "test_server_nat.h"
 
-#define ARGS "hscS:P:p:k:"
+#define ARGS "hscS:P:p:k:R:"
 
 struct Config{
     char* server_ip;
     char* server_port;
     char* client_port;
     char* key;
+    char* route_file;
     char type;
 }config;
 void usage() {
@@ -15,6 +15,8 @@ void usage() {
 }
 void initconfig() {
     config.client_port = config.server_port = config.server_ip = config.key = NULL;
+    config.route_file = NULL;
+    config.type = 0;
 }
 void showConf(Config* conf) {
     fprintf(stderr, "SERVER IP:%s \n"
@@ -45,6 +47,9 @@ void showConf(Config* conf) {
             case 'c':
                 config.type = 'c';
                 break;
+            case 'R':
+                config.route_file = optarg;
+                break;
             case 'h':
                 usage();
                 exit(0);
@@ -58,7 +63,7 @@ void showConf(Config* conf) {
             do_server(config.server_ip, config.server_port);
             break;
         case 'c':
-            do_client(config.server_ip, config.server_port, config.client_port);
+            do_client(config.server_ip, config.server_port, config.client_port, config.route_file);
             break;
         default:
             usage();

@@ -114,7 +114,7 @@ void set_FD_SET(fd_set* set, int fd, pthread_mutex_t* mutex);
 void clr_FD_SET(fd_set* set, int fd, pthread_mutex_t* mutex);
 
 
-void do_client(char* server_ip, char* server_port, char* client_port);
+void do_client(char* server_ip, char* server_port, char* client_port, char* route_file);
 void do_server(char* server_ip, char* server_port);
 void* keep_alive_thread(void* argv);
 

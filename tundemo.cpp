@@ -24,9 +24,15 @@ void process_ipv4_reply(Msg* msg);
 void do_keep_alive(Msg* msg, int fd);
 void* read_tun_thread(void* argv);
 
+struct RouteEntry{
+    char dst[30];
+    char netmask[30];
+}routes[1000];
+
 struct tun_config {
     int tun_fd;
     int server_fd;
+    uint32_t routes_num;
 }conf;
 /**
  *  激活接口
@@ -68,7 +74,7 @@ int interface_up(char *interface_name)
  *  增加到13.8.0.2的路由
  *  同命令:route add -host 13.8.0.2 dev tun0
  */
-int route_add(char * interface_name)
+int route_add(char * interface_name, char* dst_ip, char* dst_netmask)
 {
     int skfd;
     struct rtentry rt;
@@ -80,11 +86,11 @@ int route_add(char * interface_name)
     memset(&rt, 0, sizeof(rt));
 
     genmask.sin_family = AF_INET;
-    genmask.sin_addr.s_addr = inet_addr("255.255.255.255");
+    genmask.sin_addr.s_addr = inet_addr(dst_netmask);
 
     bzero(&dst,sizeof(struct sockaddr_in));
     dst.sin_family = AF_INET;
-    dst.sin_addr.s_addr = inet_addr("216.58.194.196");
+    dst.sin_addr.s_addr = inet_addr(dst_ip);
 
     rt.rt_metric = 2;
     rt.rt_dst = *(struct sockaddr*) &dst;
@@ -96,13 +102,43 @@ int route_add(char * interface_name)
     skfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(ioctl(skfd, SIOCADDRT, &rt) < 0)
     {
-        fprintf(stderr, "Error route add :%d, %s\n",skfd, strerror(errno));
+        fprintf(stderr, "Error route add :%d, %s/%s %s\n",skfd,dst_ip, dst_netmask, strerror(errno));
         return -1;
     }
     return 1;
 }
 
+uint32_t read_route(char* file, RouteEntry* routes) {
+    uint32_t num = 0; char buf[128];
+    if(file == NULL) {
+        fprintf(stderr, "No Route File\n");
+        return num;
+    }
+    FILE* f = fopen(file, "r");
+    if(f == NULL) {
+        fprintf(stderr, "Open Route File:%s, Error: %s \n", file,strerror(errno));
+    }
+    bzero(buf, 128);
+    while(fgets(buf, 50, f) != NULL) {
+        for(int i = 0; i < 50; ++i)
+            if(buf[i] == '\n' || buf[i] == 'r') buf[i] = 0;
+        strcpy(routes[num].dst, buf);
+        bzero(buf, 128);
+        fgets(buf, 50, f);
+        for(int i = 0; i < 50; ++i)
+            if(buf[i] == '\n' || buf[i] == 'r') buf[i] = 0;
+        strcpy(routes[num].netmask, buf);
+        bzero(buf, 128);
+        num ++;
+    }
+    return num;
+}
 
+void show_route(RouteEntry* routes, int num) {
+    for(int i = 0; i < num; ++i) {
+        fprintf(stderr, "Route IP/MASK: %s/%s\n", routes[i].dst, routes[i].netmask);
+    }
+}
 int tun_alloc(int flags, char* tun_ip)
 {
 
@@ -140,7 +176,9 @@ int tun_alloc(int flags, char* tun_ip)
 //    system(command);
 
     interface_up(ifr.ifr_name);
-    route_add(ifr.ifr_name);
+   // route_add(ifr.ifr_name, NULL, NULL);
+    for(uint32_t i = 0 ; i < conf.routes_num; ++i)
+        route_add(ifr.ifr_name, routes[i].dst, routes[i].netmask);
     return fd;
 }
 
@@ -198,7 +236,10 @@ void* read_tun_thread(void* argv) {
 }
 
 
-void do_client(char* server_ip, char* server_port, char* client_port) {
+void do_client(char* server_ip, char* server_port, char* client_port, char* route_file) {
+
+    conf.routes_num = read_route(route_file, routes);
+    show_route(routes, conf.routes_num);
 
 
     struct sockaddr_in server_addr, client_addr;
@@ -210,7 +251,6 @@ void do_client(char* server_ip, char* server_port, char* client_port) {
     Inet_pton(AF_INET, server_ip, &server_addr.sin_addr.s_addr);
     client_addr.sin_family = AF_INET;
     client_addr.sin_port = htons(atoi(client_port));
-
     socklen_t len = sizeof(struct sockaddr_in6);
 
 
