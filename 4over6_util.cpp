@@ -1,6 +1,9 @@
 //
 // Created by dalaoshe on 17-4-13.
 //
+#include <linux/if_tun.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include "4over6_util.h"
 void User_Info::decCount() {
     pthread_mutex_lock(&this->mutex);
@@ -76,8 +79,37 @@ void User_Tables::init_ipv4_pool(in_addr start, in_addr end) {
         info->secs = 0;
         info->state = FREE;
         info->mutex = PTHREAD_MUTEX_INITIALIZER;
+
+        struct ifreq ifr;
+        int fd, err;
+        char *clonedev = "/dev/net/tun";
+        if ((fd = open(clonedev, O_RDWR)) < 0) {
+            fprintf(stderr," error:%s\n", strerror(errno));
+            return ;
+        }
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+        if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0) {
+            fprintf(stderr,"%s ioctl error:%s\n",ifr.ifr_name, strerror(errno));
+            close(fd);
+            return ;
+        }
+        printf("Open tun/tap device: %s for reading...\n", ifr.ifr_name);
+        //激活虚拟网卡
+        char buf[16];
+        uint32_t tmp = htonl(i);
+        Inet_ntop(AF_INET, &tmp, buf,sizeof(buf));
+        fprintf(stderr,"tun ip_v4: %s \n",buf);
+
+        char command[64];
+        sprintf(command,"ifconfig %s %s/24",ifr.ifr_name, buf);
+        system(command);
+
         this->v4_map_info.insert(pair<in_addr_t ,User_Info*>(htonl(i), info));
     }
+
+
+
     this->fd_map_mutex = PTHREAD_MUTEX_INITIALIZER;
     this->pool_size = e - s + 1;
     this->ipv4_used = 0;

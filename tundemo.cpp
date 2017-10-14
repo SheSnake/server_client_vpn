@@ -129,11 +129,6 @@ int tun_alloc(int flags, char* tun_ip)
 
     //激活虚拟网卡增加到虚拟网卡的路由
 
-    char buf[16];
-    Inet_ntop(AF_INET, &addr_v4[0], buf,sizeof(buf));
-    fprintf(stderr,"tun ip_v4: %s \n",buf);
-
-
     char command[64];
     sprintf(command,"ifconfig %s %s/24",ifr.ifr_name, tun_ip);
     system(command);

@@ -24,13 +24,17 @@ void process_packet(char* buffer , uint32_t size)
     char buf[16],buf2[16];
     Inet_ntop(AF_INET, &iph->daddr, buf,sizeof(buf));
     Inet_ntop(AF_INET, &iph->saddr, buf2,sizeof(buf2));
-    if(iph->protocol == 6 && info != NULL)
-        fprintf(stderr,"recev tcp packet from ip_v4: %s should sent to ip_v4: %s \n",buf2, buf);
-    else if(info != NULL)
-        fprintf(stderr,"recev udp packet from ip_v4: %s should sent to ip_v4: %s \n",buf2, buf);
+    if(iph->protocol == IPPROTO_TCP && info != NULL && info->state != FREE)
+        fprintf(stderr,"Recev TCP PKT From IP: %s Should Sent To IP: %s \n",buf2, buf);
+    else if(iph->protocol == IPPROTO_UDP && info != NULL && info->state != FREE)
+        fprintf(stderr,"Recev UDP PKT From IP: %s Should Sent To IP: %s \n",buf2, buf);
+    else if(iph->protocol == IPPROTO_ICMP && info != NULL && info->state != FREE)
+        fprintf(stderr,"Recev ICMP PKT From IP: %s Should Sent To IP: %s \n",buf2, buf);
+    else if(iph->protocol == IPPROTO_ICMPV6 && info != NULL && info->state != FREE)
+        fprintf(stderr,"Recev ICMPv6 PKT From IP: %s Should Sent To IP: %s \n",buf2, buf);
 
     if(info == NULL || info->state == FREE)return;
-    fprintf(stderr," ---- recev an valid packet from ip_v4: %s should sent to ip_v4: %s   ---- \n",buf2, buf);
+    fprintf(stderr," ---- Recev A Valid PKT From IP: %s Should Sent To IP: %s   ---- \n",buf2, buf);
 
 
 
@@ -64,11 +68,16 @@ void do_server(char* server_ip, char* server_port) {
     Listen(listenfd, MAX_BACKLOG);
 
     int raw_tcp_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    int raw_icmp_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    int raw_icmpv6_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_ICMPV6);
     int raw_udp_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
     int raw_out_fd = Socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
     SetSocket(raw_udp_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
     SetSocket(raw_tcp_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+    SetSocket(raw_icmp_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+    SetSocket(raw_icmpv6_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
     SetSocket(raw_out_fd, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on));
+
     struct sockaddr addr;
     char buf[65536];
     int datasize;
@@ -81,6 +90,8 @@ void do_server(char* server_ip, char* server_port) {
     FD_SET(listenfd, &allset);
     FD_SET(raw_tcp_fd, &allset);
     FD_SET(raw_udp_fd, &allset);
+    FD_SET(raw_icmp_fd, &allset);
+    FD_SET(raw_icmpv6_fd, &allset);
 
     in_addr star;
     in_addr end;
@@ -111,7 +122,7 @@ void do_server(char* server_ip, char* server_port) {
                 }
             }
             if(i == FD_SETSIZE) {
-                fprintf(stderr, "too many\n");
+                fprintf(stderr, "Too Many Client Connected !\n");
             }
 
             set_FD_SET(&allset, connfd, &allset_mutex);
@@ -123,12 +134,22 @@ void do_server(char* server_ip, char* server_port) {
 
         if(FD_ISSET(raw_tcp_fd, &rset)) {
             memset(buf, 0, sizeof(buf));
-            datasize = recvfrom(raw_tcp_fd, buf, 65536,0 ,&addr,&saddr_size );
+            datasize = recvfrom(raw_tcp_fd, buf, 65536, 0, &addr, &saddr_size );
             process_packet(buf, datasize);
         }
         if(FD_ISSET(raw_udp_fd, &rset)) {
             memset(buf, 0, sizeof(buf));
-            datasize = recvfrom(raw_udp_fd, buf, 65536,0 ,&addr,&saddr_size );
+            datasize = recvfrom(raw_udp_fd, buf, 65536, 0, &addr, &saddr_size );
+            process_packet(buf, datasize);
+        }
+        if(FD_ISSET(raw_icmp_fd, &rset)) {
+            memset(buf, 0, sizeof(buf));
+            datasize = recvfrom(raw_icmp_fd, buf, 65536, 0, &addr, &saddr_size );
+            process_packet(buf, datasize);
+        }
+        if(FD_ISSET(raw_icmpv6_fd, &rset)) {
+            memset(buf, 0, sizeof(buf));
+            datasize = recvfrom(raw_icmpv6_fd, buf, 65536, 0, &addr, &saddr_size );
             process_packet(buf, datasize);
         }
 
@@ -137,26 +158,20 @@ void do_server(char* server_ip, char* server_port) {
                 continue;
             }
             if(FD_ISSET(sockfd, &rset)) { // 该socket有客户请求到达
-                fprintf(stderr, "Recv a request from fd %d\n", sockfd);
                 memset(&client_addr, 0, sizeof(client_addr));
                 socklen_t  len = sizeof(client_addr);
                 Getpeername(sockfd, (SA*)&client_addr, &len);
-
-                char ip[16];
-                Inet_ntop(AF_INET, &client_addr.sin_addr, ip, sizeof(ip));
-                fprintf(stderr, "Recv A Request From IP:%s, Port %d, Socket %d\n",ip,client_addr.sin_port,connfd);
-
+                char ipv4[16];
+                Inet_ntop(AF_INET, &client_addr.sin_addr, ipv4, sizeof(ipv4));
+                fprintf(stderr, "Recv A Packet Transmission Request From IP:%s, Port %d, Socket %d\n",ipv4,client_addr.sin_port,sockfd);
                 int result = do_response(sockfd, raw_out_fd, i, &client_addr, &len);
-
-
 
                 if(result < 0) {//
                     clr_FD_SET(&allset, sockfd, &allset_mutex);
                     client[i] = -1;
-                    fprintf(stderr, "close client \n");
-
+                    fprintf(stderr, "Closing Client Connection From IP:%s, Port %d, Socket %d\n",ipv4,client_addr.sin_port,sockfd);
                     user_tables.free_resource_of_fd(sockfd);
-                    fprintf(stderr,"close ok\n");
+                    fprintf(stderr, "Close Ok\n");
                 }
                 if(--nready <= 0)break;
             }
@@ -170,15 +185,14 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
     memset(&msg, 0, sizeof(struct Msg));
     ssize_t needbs = sizeof(struct Msg_Hdr);
 
-    //n = recvfrom(fd, &msg, sizeof(struct Msg_Hdr),0, (SA*)client_addr, len);
     n = read(fd, (char*)&msg, sizeof(struct Msg_Hdr));
     if(n < 0) {
-        fprintf(stderr, "read sockfd %d error: %s \n",fd,strerror(errno));
+        fprintf(stderr, "Read Sockfd %d Error: %s \n",fd,strerror(errno));
         Close(fd);
         return -1;
     }
     else if(n == 0) {
-        fprintf(stderr, "close sockfd %d \n",fd);
+        fprintf(stderr, "Close Sockfd %d \n",fd);
         Close(fd);
         return -1;
     }
@@ -193,30 +207,32 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
         if(msg.hdr.type != 100 && msg.hdr.type != 104) {
             n = read(fd, ipv4_payload, msg.hdr.length);
             if(n != msg.hdr.length) {
-                fprintf(stderr, "read payload error, need %d byte, read %d byte\n",msg.hdr.length, n);
                 if(n <= 0) {
+                    fprintf(stderr, "Read Payload Error, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
                     Close(fd);
                     return -1;
                 }
             }
             else {
                 if(msg.hdr.type == 102)
-                    fprintf(stderr, "read payload ok, need %d byte, read %d byte\n",msg.hdr.length, n);
+                    fprintf(stderr, "Read Payload ok, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
             }
-            while(n < msg.hdr.length)
-                n += read(fd, ipv4_payload+n, msg.hdr.length-n);
+            while(n < msg.hdr.length) {
+                fprintf(stderr, "Payload Is Divided, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
+                n += read(fd, ipv4_payload + n, msg.hdr.length - n);
+            }
         }
 
         switch(msg.hdr.type){
             case 100:
-                fprintf(stderr, "recv an 100 reqeust\n");
+                fprintf(stderr, "Recv A 100 Request\n");
                 reply_ipv4_request(fd, client_addr, len);
-                fprintf(stderr, "reply an 100 reqeust over\n");
+                fprintf(stderr, "Reply A 100 Request Over\n");
                 break;
             case 101:
                 break;
             case 102: {
-                fprintf(stderr, "Recv an 102 request pack_len=%d, read n=%d\n", msg.hdr.length, n);
+                fprintf(stderr, "Recv A 102 Request, PKT_LEN=%d, Read n=%d\n", msg.hdr.length, n);
 
 //                char *buf = (char *) msg.ipv4_payload;
 //                char ip[4];
@@ -237,19 +253,19 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
                 break;
             }
             case 104:
-                fprintf(stderr,"recv an 104 live pack_len=%d %d\n",msg.hdr.length, n);
+                fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %d\n",msg.hdr.length, n);
                 do_keep_alive(fd);
                 break;
             default:
-                fprintf(stderr, "recv an error reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
+                fprintf(stderr, "Recv A Error Reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
                 break;
         }
     }
     else {// 读到长度小于头长度说明可能出错(也有可能粘包,继续读取)
-        fprintf(stderr, "read %d byte, recv an error hdr\n", n);
+        fprintf(stderr, "Read %d byte, Recv an error hdr\n", n);
         while (n < sizeof(struct Msg_Hdr))
             n += read(fd, (char*)&msg + n , sizeof(struct Msg_Hdr)-n);
-        fprintf(stderr, "recv an error hdr\n");
+        fprintf(stderr, "Recv an error hdr\n");
         goto process_payload;
     }
     return 0;
