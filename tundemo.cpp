@@ -16,14 +16,24 @@
 #include <errno.h>
 #include <net/route.h>
 #include "4over6_util.h"
+#include "crypto.h"
+#include <cstdlib>
+#include <string.h>
 
 static in_addr addr_v4[5];
 void request_ipv4(int fd);
+void negotiate_key(int fd);
 void process_ipv4_assign(Msg* msg);
 void process_ipv4_reply(Msg* msg);
 void do_keep_alive(Msg* msg, int fd);
 void* read_tun_thread(void* argv);
-
+static char aes_key[] = "dalaoshe12345678";
+static AES_KEY en_key;
+static AES_KEY de_key;
+static unsigned char userkey[AES_BLOCK_SIZE];
+static unsigned char *iv1 = new unsigned char[AES_BLOCK_SIZE];
+static unsigned char *iv2 = new unsigned char[AES_BLOCK_SIZE];
+	
 struct RouteEntry{
     char dst[30];
     char netmask[30];
@@ -213,6 +223,9 @@ void* read_tun_thread(void* argv) {
     tun_config* conf = (tun_config*)argv;
     ssize_t ret;
     char buf[4096];
+	static unsigned char *encrypt_result = new unsigned char[4096];
+	static uint8_t *to_encry_data = new uint8_t[4096]; 
+	unsigned char *local_iv1 = new unsigned char[AES_BLOCK_SIZE];
     Msg msg;
     bzero(&msg, sizeof(struct Msg));
     bzero(buf, 4096);
@@ -226,10 +239,43 @@ void* read_tun_thread(void* argv) {
 //        buf[20] = 0;
 //        *((unsigned short*)&buf[22]) += 8;
         printf("read %d bytes\n", ret);
-        msg.hdr.type = 102;
-        msg.hdr.length = ret;
-        memcpy((char*)msg.ipv4_payload, buf, ret);
-        int ret = Write_nByte(conf->server_fd, (char*) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
+	
+		//encry
+		int32_t len = ret;
+		*((int32_t*)to_encry_data) = len;
+		memcpy(to_encry_data+sizeof(int32_t), buf, len);
+		len += sizeof(int32_t);
+
+
+		cout<<"before encry"<<endl;
+		for(int i =0 ; i < len; ++i) {
+			fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
+			if(i%8 == 0)cout<<endl;
+		}
+		cout<<endl;
+
+		int32_t encry_len = len;
+		int32_t res = (len % AES_BLOCK_SIZE);
+		if(len != 0 && res != 0) {
+			encry_len += (AES_BLOCK_SIZE-res);
+		}
+		msg.hdr.type = 102;
+		msg.hdr.length = encry_len;
+	
+		memset((unsigned char*)local_iv1,'m',AES_BLOCK_SIZE);
+		memset((unsigned char*)encrypt_result, 0, 4096);
+		AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &en_key, local_iv1);
+		memcpy((char*)msg.ipv4_payload, encrypt_result, msg.hdr.length);
+
+		cout<<"encry result"<<endl;
+		for(int i =0 ; i < msg.hdr.length; ++i) {
+			fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+			if(i%8 == 0)cout<<endl;
+		}
+		cout<<endl;
+        
+		
+		int ret = Write_nByte(conf->server_fd, (char*) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
 //        ret = write(tun, buf, ret);
         printf("write %d bytes\n", ret);
     }
@@ -257,7 +303,8 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
     int sockfd = Socket(AF_INET, SOCK_STREAM, 0);
     Bind_Socket(sockfd, (SA*)&client_addr, len);
     Socket_Peer_Connect(sockfd, (SA*)&server_addr, len);
-    request_ipv4(sockfd);
+	request_ipv4(sockfd);
+    negotiate_key(sockfd);
     size_t msg_hdr_len = sizeof(struct Msg_Hdr);
     conf.server_fd = sockfd;
     while (1){
@@ -277,7 +324,7 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
         else if(n == msg_hdr_len){
             process_payload:
             uint8_t *ipv4_payload = msg.ipv4_payload;
-            if(msg.hdr.type != 100 && msg.hdr.type != 104) {
+            if(msg.hdr.type != 100 ) {
                 n = read(sockfd, ipv4_payload, msg.hdr.length);
                 if(n != msg.hdr.length) {
                     fprintf(stderr, "read payload error, need %d byte, read %d byte\n",msg.hdr.length, n);
@@ -352,15 +399,104 @@ void request_ipv4(int fd) {
         fprintf(stderr,"send 100 request success\n");
     }
 }
+
+void negotiate_key(int fd) {
+    static struct Msg msg;
+    memset(&msg, 0, sizeof(struct Msg));
+    msg.hdr.length = 128;
+    msg.hdr.type = 98;
+    size_t needbs = sizeof(struct Msg_Hdr) + msg.hdr.length;
+
+	
+	string two = EncodeRSAKeyFile("pubkey.pem", aes_key);  
+	char* payload = (char*)msg.ipv4_payload;
+	const char* key = two.c_str();
+	memcpy(payload, key, 128);
+	for(int i =0 ; i < 128; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+	}
+
+	cout<<endl;
+	cout<< two.length() <<endl;
+	cout << strlen(payload)<<endl;
+
+	memcpy((char*)userkey, aes_key, AES_BLOCK_SIZE);	
+	
+	memset((unsigned char*)iv1,'m',AES_BLOCK_SIZE);
+	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
+	
+	AES_set_encrypt_key(userkey, AES_BLOCK_SIZE*8, &en_key);
+	AES_set_decrypt_key(userkey, AES_BLOCK_SIZE*8, &de_key);
+
+    ssize_t n = Write_nByte(fd, (char*)&msg, needbs);
+
+    if(n < 0) {
+        fprintf(stderr,"client write 98 request error: %s\n",strerror(errno));
+    }
+    if(n != needbs) {
+        fprintf(stderr,"client write 98 request error, need %d, write %d \n",needbs, n);
+    }
+    else {
+        fprintf(stderr,"send 98 request success\n");
+    }
+}
+
+
 void do_keep_alive(Msg* msg, int fd) {
     fprintf(stderr," client read an 104 packet\n");
-    memset((char*)msg, 0, sizeof(struct Msg));
+    
+	for(int i =0 ; i < msg->hdr.length; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)msg->ipv4_payload)+i));
+
+	}
+	cout<<endl;
+	static unsigned char *decrypt_result = new unsigned char[4096];
+	memset((unsigned char*)decrypt_result, 0, msg->hdr.length);
+	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
+	AES_Decrypt((unsigned char*)(msg->ipv4_payload), decrypt_result,msg->hdr.length, &de_key, iv2);
+	cout<<decrypt_result<<endl;	
+	
+	
+	
+	memset((char*)msg, 0, sizeof(struct Msg));
     msg->hdr.type = 104;
-    msg->hdr.length = 0;
-    fprintf(stderr,"------- client send a keep alive to server  ----------\n");
+
+
+	// encry buf data
+	char buf[] = "123";
+	int32_t len = strlen(buf);
+	
+	static uint8_t *to_encry_data = new uint8_t[4096]; 
+	*((int32_t*)to_encry_data) = len;
+	memcpy(to_encry_data+sizeof(int32_t), buf, len);
+	len += sizeof(int32_t);
+	int32_t encry_len = len;
+	int32_t res = (len % AES_BLOCK_SIZE);
+	if(len != 0 && res != 0) {
+		encry_len += (AES_BLOCK_SIZE-res);
+	}
+    msg->hdr.length = encry_len;
+	static unsigned char *encrypt_result = new unsigned char[4096];
+	memset((unsigned char*)iv1,'m',AES_BLOCK_SIZE);
+	memset((unsigned char*)encrypt_result, 0, 4096);
+	AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &en_key, iv1);
+	memcpy((char*)msg->ipv4_payload, encrypt_result, msg->hdr.length);
+	
+
+	fprintf(stderr,"------- client send a keep alive to server  ----------\n");
     int n = Write_nByte(fd, (char*)msg, sizeof(struct Msg_Hdr)+msg->hdr.length);
 }
 void process_ipv4_reply(Msg* msg) {
-    ssize_t ret = Write_nByte(conf.tun_fd, (char*)msg->ipv4_payload, msg->hdr.length);
-    printf("write %d/%d bytes to tun,\n", ret, msg->hdr.length);
+	static unsigned char *decrypt_result = new unsigned char[4096];
+	memset((unsigned char*)decrypt_result, 0, msg->hdr.length);
+	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
+	AES_Decrypt((unsigned char*)msg->ipv4_payload, decrypt_result, msg->hdr.length, &de_key, iv2);
+
+
+
+    
+	ssize_t ret = Write_nByte(conf.tun_fd, (char*)msg->ipv4_payload, msg->hdr.length);
+    
+	
+	printf("write %d/%d bytes to tun,\n", ret, msg->hdr.length);
 }

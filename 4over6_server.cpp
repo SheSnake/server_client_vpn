@@ -2,9 +2,12 @@
 // Created by dalaoshe on 17-4-13.
 //
 #include "4over6_util.h"
+#include "crypto.h"
 #define MAX_BACKLOG 20
 static struct User_Tables user_tables;
 
+
+int negotiate_to_client_ipv4(int fd, struct Msg* c_msg);
 int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, socklen_t *len);
 void reply_ipv4_request(int fd, sockaddr_in* client_addr, socklen_t* clientlen);
 void do_ipv4_packet_request(int fd, int rawfd, struct Msg* msg);
@@ -204,7 +207,7 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
 //            fprintf(stderr, "%02X ", ((char*)&msg)[i]);
 //        }
 //        fprintf(stderr, "\n");
-        if(msg.hdr.type != 100 && msg.hdr.type != 104) {
+        if(msg.hdr.type != 100 ) {
             n = read(fd, ipv4_payload, msg.hdr.length);
             if(n != msg.hdr.length) {
                 if(n <= 0) {
@@ -224,6 +227,13 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
         }
 
         switch(msg.hdr.type){
+			case 98:
+                fprintf(stderr, "Recv A 98 Request\n");
+				negotiate_to_client_ipv4(fd, &msg);
+				break;
+			case 99:
+                fprintf(stderr, "Recv A 99 Request\n");
+				break;
             case 100:
                 fprintf(stderr, "Recv A 100 Request\n");
                 reply_ipv4_request(fd, client_addr, len);
@@ -252,10 +262,27 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
             case 103: {
                 break;
             }
-            case 104:
-                fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %d\n",msg.hdr.length, n);
+            case 104: {
+				cout<<"recv an 104"<<endl;
+				for(int i =0 ; i < msg.hdr.length; ++i) {
+					fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+				}
+				cout<<endl;
+
+
+				User_Info* info = user_tables.get_user_info_by_fd(fd);
+				static unsigned char *decrypt_result = new unsigned char[4096];
+				memset((unsigned char*)decrypt_result, 0, msg.hdr.length);
+				memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
+				AES_Decrypt((unsigned char*)(msg.ipv4_payload), decrypt_result,msg.hdr.length, &info->de_key, info->iv2);
+				int32_t len = *((int32_t*)decrypt_result);
+				
+				cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
+                
+				fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %d\n",msg.hdr.length, n);
                 do_keep_alive(fd);
                 break;
+			}
             default:
                 fprintf(stderr, "Recv A Error Reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
                 break;
@@ -284,7 +311,6 @@ void reply_ipv4_request(int fd, sockaddr_in* client_addr, socklen_t* clientlen) 
     fprintf(stderr,"set user info over\n");
     user_tables.set_fd_info_map(fd,info);
     fprintf(stderr,"set user table info over\n");
-
     msg.hdr.type = 101;
     Ipv4_Request_Reply *payload = (Ipv4_Request_Reply*)msg.ipv4_payload;
     payload->addr_v4[0] = info->addr_v4;
@@ -305,15 +331,36 @@ void reply_ipv4_request(int fd, sockaddr_in* client_addr, socklen_t* clientlen) 
 }
 
 void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
-    iphdr* ipv4hdr = (iphdr*)(c_msg->ipv4_payload);
     User_Info* info = user_tables.get_user_info_by_fd(fd);
     if(info == NULL) {
         return;
     }
-    //
     info->setLatestTime();
-    //获取目的地址
+	
+	cout<<"recv encry result"<<endl;
+	for(int i =0 ; i < c_msg->hdr.length; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
+		if(i%8 == 0)cout<<endl;
+	}
+	cout<<endl;
+	//decrypt
+	static unsigned char *decrypt_result = new unsigned char[4096];
+	memset((unsigned char*)decrypt_result, 0, c_msg->hdr.length);
+	memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
+	AES_Decrypt((unsigned char*)(c_msg->ipv4_payload), decrypt_result,
+			c_msg->hdr.length, &info->de_key, info->iv2);
+	int32_t len = *((int32_t*)decrypt_result);
+	cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
+    
+	cout<<"decrypt result"<<endl;
+	for(int i =0 ; i < len; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
+		if(i%8 == 0)cout<<endl;
+	}
+	cout<<endl;
 
+    //获取目的地址
+    iphdr* ipv4hdr = (iphdr*)(decrypt_result+sizeof(int32_t));
     struct sockaddr_in dstaddr,srcaddr;
     dstaddr.sin_addr.s_addr = ipv4hdr->daddr;
     dstaddr.sin_family = AF_INET;
@@ -333,13 +380,43 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
 //        fprintf(stderr,"%02x i:%d ",(temp),i);
 //    }
 //    fprintf(stderr,"\n\n");
-    ssize_t n = sendto(rawfd, c_msg->ipv4_payload, c_msg->hdr.length, 0, (SA*)&dstaddr, addr_len);
+    
+	
+	ssize_t n = sendto(rawfd, decrypt_result+sizeof(int32_t), len, 0, (SA*)&dstaddr, addr_len);
 
-    if(n != c_msg->hdr.length) {
-        fprintf(stderr, "write reply error, need %d byte, write %d byte\n",c_msg->hdr.length, n);
+    if(n != len) {
+        fprintf(stderr, "write reply error, need %d byte, write %d byte\n",len, n);
         if(n <= 0)
             return;
     }
+}
+
+#include <iostream>
+using namespace std;
+int negotiate_to_client_ipv4(int fd, struct Msg* c_msg) {
+	cout<<"Recv key"<<endl;	
+	for(int i =0 ; i < 128; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
+	}
+	cout<<endl;
+	
+	string three = DecodeRSAKeyFile("prikey.pem",(char*)c_msg->ipv4_payload);  
+    User_Info* info = user_tables.get_user_info_by_fd(fd);
+	if(info == NULL) {
+		cout << "error" << endl;
+	}
+	else {
+		info->key = "dalaoshe12345678";	
+		cout <<"fd:"<<info->key<<endl;
+		cout << "private decrypt: " << info->key << endl;
+		memset((unsigned char*)info->iv1,'m',AES_BLOCK_SIZE);
+		memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
+		unsigned char* userkey = (unsigned char*)(info->key.c_str());
+		AES_set_encrypt_key(userkey, AES_BLOCK_SIZE*8, &info->en_key);
+		AES_set_decrypt_key(userkey, AES_BLOCK_SIZE*8, &info->de_key);
+	}	
+	cout << "private decrypt: " << three << endl;
+
 }
 
 void do_keep_alive(int fd) {

@@ -7,6 +7,9 @@
 
 #include "unp.h"
 #include <pthread.h>
+#include "crypto.h"
+#include <string>
+using namespace std;
 #include <map>
 
 #define MAX_IPV4_PAYLOAD 4096
@@ -27,6 +30,10 @@ struct Msg{
     uint8_t ipv4_payload[MAX_IPV4_PAYLOAD];
 };
 
+struct EncryPayload{
+    int len;
+};
+
 struct Ipv4_Request_Reply{
     struct in_addr addr_v4[5];
 };
@@ -40,6 +47,11 @@ struct User_Info {
     struct in_addr addr_v4;// 网络序
     struct in_addr c_addr_v4;// 网络序
     pthread_mutex_t mutex;
+	string key;
+	AES_KEY en_key;
+	AES_KEY de_key;
+	unsigned char iv1[AES_BLOCK_SIZE];
+	unsigned char iv2[AES_BLOCK_SIZE];
     void incCount();
     void decCount();
     bool isTimeOut();
@@ -126,4 +138,6 @@ void print_udp_packet(unsigned char * , int);
 void print_icmp_packet(unsigned char* , int);
 void PrintData (unsigned char* , int);
 void sendKeepAlive(User_Info* info);
+
+
 #endif //INC_4OVER6_4OVER6_UTIL_H

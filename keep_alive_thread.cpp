@@ -1,5 +1,5 @@
 #include "4over6_util.h"
-
+#include "crypto.h"
 //
 // Created by dalaoshe on 17-4-16.
 //
@@ -8,7 +8,27 @@ void sendKeepAlive(User_Info* info) {
     memset(&msg, 0, sizeof(struct Msg));
     msg.hdr.type = 104;
     msg.hdr.length = 0;
-    fprintf(stderr,"------- keep_alive_thread send a keep alive to fd %d ----------\n",info->fd);
+	
+	char buf[] = "11112222333344445";
+	int len = strlen(buf);
+	int encry_len = len;
+	int res = (len % AES_BLOCK_SIZE);
+	if(len != 0 && res != 0) {
+		encry_len += (AES_BLOCK_SIZE-res);
+	}
+    msg.hdr.length = encry_len;
+	static unsigned char *encrypt_result = new unsigned char[4096];
+	memset((unsigned char*)info->iv1,'m',AES_BLOCK_SIZE);
+	memset((unsigned char*)encrypt_result, 0, 4096);
+	AES_Encrypt((unsigned char*)buf, encrypt_result, len, &info->en_key, info->iv1);
+	memcpy((char*)msg.ipv4_payload, encrypt_result, msg.hdr.length);
+	for(int i =0 ; i < msg.hdr.length; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+	}
+	cout<<endl;
+	
+	
+	fprintf(stderr,"------- keep_alive_thread send a keep alive to fd %d ----------\n",info->fd);
 //    ssize_t n = write(fd, &msg, sizeof(struct Msg_Hdr)+msg.hdr.length);
     info->mutex_write_FD((char*)&msg, sizeof(struct Msg_Hdr)+msg.hdr.length);
 //    Write_nByte(fd, (char*)&msg, sizeof(struct Msg_Hdr)+msg.hdr.length);
