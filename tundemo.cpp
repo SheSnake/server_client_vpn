@@ -144,9 +144,11 @@ uint32_t read_route(char* file, RouteEntry* routes) {
 }
 
 void show_route(RouteEntry* routes, int num) {
+	fprintf(stderr,"Confirgure follow routes through VPN:\n");
     for(int i = 0; i < num; ++i) {
         fprintf(stderr, "Route IP/MASK: %s/%s\n", routes[i].dst, routes[i].netmask);
     }
+	fprintf(stderr,"\n");
 }
 int tun_alloc(int flags, char* tun_ip)
 {
@@ -170,7 +172,7 @@ int tun_alloc(int flags, char* tun_ip)
         return err;
     }
 
-    printf("Open tun/tap device: %s for reading...\n", ifr.ifr_name);
+    printf("Step.3 Open tun/tap device: %s for reading...\n\n", ifr.ifr_name);
 
     //激活虚拟网卡增加到虚拟网卡的路由
 
@@ -368,10 +370,13 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
 
 void process_ipv4_assign(Msg* msg) {
     Ipv4_Request_Reply* reply = (Ipv4_Request_Reply*)msg->ipv4_payload;
+    fprintf(stderr,"Step.2 Recev VPN ip assign response(101):\n");
     for(int i = 0 ; i < 5; ++i) {
         char buf[16];
         Inet_ntop(AF_INET, &(reply->addr_v4[i]), buf,sizeof(buf));
-        fprintf(stderr,"recev %d , ip_v4: %s \n",i, buf);
+		if(i == 0) {
+			fprintf(stderr,"Confirgure VPN server assign ip: %s .\n\n",buf);
+		}
     }
     for(int i = 0 ; i < 5; ++i)
         addr_v4[i] = reply->addr_v4[i];
@@ -392,7 +397,7 @@ void request_ipv4(int fd) {
         fprintf(stderr,"client write 100 request error, need %lu, write %lu \n",needbs, n);
     }
     else {
-        fprintf(stderr,"send 100 request success\n");
+        fprintf(stderr,"Step.1 Send VPN ip assign request(100) success.\n\n");
     }
 }
 
@@ -409,16 +414,19 @@ void negotiate_key(int fd) {
 	const char* key = two.c_str();
 	memcpy(payload, key, 128);
 
-	cout<<"encry key"<<endl;
-	for(int i =0 ; i < 128; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
-	}
-	cout<<endl;
-	cout<< two.length() <<endl;
-
-	string three = DecodeRSAKeyFile("prikey.pem", two);  
-	cout<<"decry key:"<<three<<endl;	
-
+    fprintf(stderr,"Step.4 Generate aes key encrypt through rsa:\n");
+    fprintf(stderr,"aes key is:%s\n", aes_key);
+	
+	
+//	cout<<"encry key"<<endl;
+//	for(int i =0 ; i < 128; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+//	}
+//	cout<<endl;
+//	cout<< two.length() <<endl;
+//
+//	string three = DecodeRSAKeyFile("prikey.pem", two);  
+//	cout<<"decry key:"<<three<<endl;	
 
 	memcpy((char*)userkey, aes_key, AES_BLOCK_SIZE);	
 	memset((unsigned char*)iv1,'m',AES_BLOCK_SIZE);
@@ -436,52 +444,16 @@ void negotiate_key(int fd) {
         fprintf(stderr,"client write 98 request error, need %ld, write %ld \n",needbs, n);
     }
     else {
-        fprintf(stderr,"send 98 request success\n");
+        fprintf(stderr,"send encry key success.\n\n");
     }
 }
 
 
 void do_keep_alive(Msg* msg, int fd) {
-    fprintf(stderr," client read an 104 packet\n");
-    
-	for(int i =0 ; i < msg->hdr.length; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)msg->ipv4_payload)+i));
-
-	}
-	cout<<endl;
-	static unsigned char *decrypt_result = new unsigned char[4096];
-	memset((unsigned char*)decrypt_result, 0, msg->hdr.length);
-	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
-	AES_Decrypt((unsigned char*)(msg->ipv4_payload), decrypt_result,msg->hdr.length, &de_key, iv2);
-	cout<<decrypt_result<<endl;	
-	
-	
-	
+    fprintf(stderr,"client read an 104 packet\n");
 	memset((char*)msg, 0, sizeof(struct Msg));
     msg->hdr.type = 104;
-
-
-	// encry buf data
-	char buf[] = "123";
-	int32_t len = strlen(buf);
-	
-	static uint8_t *to_encry_data = new uint8_t[4096]; 
-	*((int32_t*)to_encry_data) = len;
-	memcpy(to_encry_data+sizeof(int32_t), buf, len);
-	len += sizeof(int32_t);
-	int32_t encry_len = len;
-	int32_t res = (len % AES_BLOCK_SIZE);
-	if(len != 0 && res != 0) {
-		encry_len += (AES_BLOCK_SIZE-res);
-	}
-    msg->hdr.length = encry_len;
-	static unsigned char *encrypt_result = new unsigned char[4096];
-	memset((unsigned char*)iv1,'m',AES_BLOCK_SIZE);
-	memset((unsigned char*)encrypt_result, 0, 4096);
-	AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &en_key, iv1);
-	memcpy((char*)msg->ipv4_payload, encrypt_result, msg->hdr.length);
-	
-
+	msg->hdr.length = 0;
 	fprintf(stderr,"------- client send a keep alive to server  ----------\n");
     int n = Write_nByte(fd, (char*)msg, sizeof(struct Msg_Hdr)+msg->hdr.length);
 }

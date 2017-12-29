@@ -121,7 +121,8 @@ char* generatePriKey(int len) {
 	srand(time(NULL));
 	string letters = "qwertyuiopasdfghjklmnbvcxz123567890-=.+";
 	int num = letters.length();
-	char *key = new char[len];
+	char *key = new char[len+1];
+	key[len] = 0;
 	for(int i = 0; i < len; ++i) {
 		int index = rand() % num;	
 		key[i] = letters[index];
