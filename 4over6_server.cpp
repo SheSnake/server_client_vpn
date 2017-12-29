@@ -357,12 +357,12 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
     }
     info->setLatestTime();
 	
-	cout<<"recv encry result"<<endl;
-	for(int i =0 ; i < c_msg->hdr.length; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
-		if(i%8 == 0)cout<<endl;
-	}
-	cout<<endl;
+//	cout<<"recv encry result"<<endl;
+//	for(int i =0 ; i < c_msg->hdr.length; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
+//		if(i%8 == 0)cout<<endl;
+//	}
+//	cout<<endl;
 	//decrypt
 	static unsigned char *decrypt_result = new unsigned char[4096];
 	memset((unsigned char*)decrypt_result, 0, c_msg->hdr.length);
@@ -370,14 +370,14 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
 	AES_Decrypt((unsigned char*)(c_msg->ipv4_payload), decrypt_result,
 			c_msg->hdr.length, &info->de_key, info->iv2);
 	int32_t len = *((int32_t*)decrypt_result);
-	cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
-    
-	cout<<"decrypt result"<<endl;
-	for(int i =0 ; i < len; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
-		if(i%8 == 0)cout<<endl;
-	}
-	cout<<endl;
+//	cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
+//    
+//	cout<<"decrypt result"<<endl;
+//	for(int i =0 ; i < len; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
+//		if(i%8 == 0)cout<<endl;
+//	}
+//	cout<<endl;
 
     //获取目的地址
     iphdr* ipv4hdr = (iphdr*)(decrypt_result+sizeof(int32_t));
