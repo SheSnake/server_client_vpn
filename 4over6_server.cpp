@@ -430,20 +430,29 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
 #include <iostream>
 using namespace std;
 int negotiate_to_client_ipv4(int fd, struct Msg* c_msg) {
-	cout<<"Recv key"<<endl;	
+	cout<<"Recv encry key"<<endl;	
 	for(int i =0 ; i < 128; ++i) {
 		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
 	}
 	cout<<endl;
+
+	string two = string(128, 0);
+	for(int i = 0; i < 128; ++i) {
+		two[i] = c_msg->ipv4_payload[i];
+	}
+	cout<<two.length()<<endl;
+
+	string three = DecodeRSAKeyFile("prikey.pem", two);  
+	cout << "private decrypt key: " << three << endl;
+   
 	
-	string three = DecodeRSAKeyFile("prikey.pem",(char*)c_msg->ipv4_payload);  
-    User_Info* info = user_tables.get_user_info_by_fd(fd);
+
+	User_Info* info = user_tables.get_user_info_by_fd(fd);
 	if(info == NULL) {
 		cout << "error" << endl;
 	}
 	else {
-		info->key = "dalaoshe12345678";	
-		cout <<"fd:"<<info->key<<endl;
+		info->key = three;	
 		cout << "private decrypt: " << info->key << endl;
 		memset((unsigned char*)info->iv1,'m',AES_BLOCK_SIZE);
 		memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
@@ -451,7 +460,6 @@ int negotiate_to_client_ipv4(int fd, struct Msg* c_msg) {
 		AES_set_encrypt_key(userkey, AES_BLOCK_SIZE*8, &info->en_key);
 		AES_set_decrypt_key(userkey, AES_BLOCK_SIZE*8, &info->de_key);
 	}	
-	cout << "private decrypt: " << three << endl;
 
 }
 
