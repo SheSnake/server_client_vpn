@@ -195,14 +195,11 @@ int tun_alloc(int flags, char* tun_ip)
 
 void config_tun()
 {
-
     int tun_fd;
     /* Flags: IFF_TUN   - TUN device (no Ethernet headers)
      *        IFF_TAP   - TAP device
      *        IFF_NO_PI - Do not provide packet information
      */
-
-   // Inet_pton(AF_INET, "10.0.0.5", &addr_v4[0]);
     char tun_ip[16];
     Inet_ntop(AF_INET, &addr_v4[0], tun_ip,sizeof(tun_ip));
 
@@ -487,15 +484,26 @@ void do_keep_alive(Msg* msg, int fd) {
     int n = Write_nByte(fd, (char*)msg, sizeof(struct Msg_Hdr)+msg->hdr.length);
 }
 void process_ipv4_reply(Msg* msg) {
+	//decrypt
+	//
+	//
 	static unsigned char *decrypt_result = new unsigned char[4096];
-	memset((unsigned char*)decrypt_result, 0, msg->hdr.length);
+	memset((unsigned char*) decrypt_result, 0, msg->hdr.length);
 	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
-	AES_Decrypt((unsigned char*)msg->ipv4_payload, decrypt_result, msg->hdr.length, &de_key, iv2);
-
-
+	AES_Decrypt((unsigned char*)(msg->ipv4_payload), decrypt_result,
+			msg->hdr.length, &de_key, iv2);
+	int32_t len = *((int32_t*)decrypt_result);
+	cout<<"recev packet res, len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
+    
+	cout<<"decrypt packet result"<<endl;
+	for(int i =0 ; i < len; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
+		if(i%8 == 0)cout<<endl;
+	}
+	cout<<endl;
 
     
-	ssize_t ret = Write_nByte(conf.tun_fd, (char*)msg->ipv4_payload, msg->hdr.length);
+	ssize_t ret = Write_nByte(conf.tun_fd, (char*)(decrypt_result+sizeof(int32_t)), len);
     
 	
 	printf("write %d/%d bytes to tun,\n", ret, msg->hdr.length);
