@@ -27,7 +27,6 @@ void process_ipv4_assign(Msg* msg);
 void process_ipv4_reply(Msg* msg);
 void do_keep_alive(Msg* msg, int fd);
 void* read_tun_thread(void* argv);
-static char aes_key[] = "dalaoshe12345678";
 static AES_KEY en_key;
 static AES_KEY de_key;
 static unsigned char userkey[AES_BLOCK_SIZE];
@@ -154,7 +153,7 @@ int tun_alloc(int flags, char* tun_ip)
 
     struct ifreq ifr;
     int fd, err;
-    char *clonedev = "/dev/net/tun";
+    char clonedev[] = "/dev/net/tun";
 
     if ((fd = open(clonedev, O_RDWR)) < 0) {
         fprintf(stderr," error:%s\n", strerror(errno));
@@ -235,7 +234,7 @@ void* read_tun_thread(void* argv) {
 //        memcpy(&buf[16], ip, 4);
 //        buf[20] = 0;
 //        *((unsigned short*)&buf[22]) += 8;
-        printf("read %d bytes\n", ret);
+        printf("read %ld bytes\n", ret);
 	
 		//encry
 		int32_t len = ret;
@@ -323,7 +322,7 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
             if(msg.hdr.type != 100 ) {
                 n = read(sockfd, ipv4_payload, msg.hdr.length);
                 if(n != msg.hdr.length) {
-                    fprintf(stderr, "read payload error, need %d byte, read %d byte\n",msg.hdr.length, n);
+                    fprintf(stderr, "read payload error, need %d byte, read %ld byte\n",msg.hdr.length, n);
                     if(n <= 0) {
                         Close(sockfd);
                         break;
@@ -331,7 +330,7 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
                 }
                 else {
                     if(msg.hdr.type == 102)
-                        fprintf(stderr, "read payload ok, need %d byte, read %d byte\n",msg.hdr.length, n);
+                        fprintf(stderr, "read payload ok, need %d byte, read %ld byte\n",msg.hdr.length, n);
                 }
                 while(n < msg.hdr.length)
                     n += read(sockfd, ipv4_payload+n, msg.hdr.length-n);
@@ -354,7 +353,7 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
                     do_keep_alive(&msg, sockfd);
                     break;
                 default:
-                    fprintf(stderr, "recv an error reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
+                    fprintf(stderr, "recv an error reqeust %d %d %ld \n",msg.hdr.type, msg.hdr.length, n);
                     break;
             }
         }
@@ -390,7 +389,7 @@ void request_ipv4(int fd) {
         fprintf(stderr,"client write 100 request error: %s\n",strerror(errno));
     }
     if(n != needbs) {
-        fprintf(stderr,"client write 100 request error, need %d, write %d \n",needbs, n);
+        fprintf(stderr,"client write 100 request error, need %lu, write %lu \n",needbs, n);
     }
     else {
         fprintf(stderr,"send 100 request success\n");
@@ -402,23 +401,26 @@ void negotiate_key(int fd) {
     memset(&msg, 0, sizeof(struct Msg));
     msg.hdr.length = 128;
     msg.hdr.type = 98;
-    size_t needbs = sizeof(struct Msg_Hdr) + msg.hdr.length;
-
-	
+    
+	size_t needbs = sizeof(struct Msg_Hdr) + msg.hdr.length;
+	char* aes_key = generatePriKey(8);
 	string two = EncodeRSAKeyFile("pubkey.pem", aes_key);  
 	char* payload = (char*)msg.ipv4_payload;
 	const char* key = two.c_str();
 	memcpy(payload, key, 128);
+
+	cout<<"encry key"<<endl;
 	for(int i =0 ; i < 128; ++i) {
 		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
 	}
-
 	cout<<endl;
 	cout<< two.length() <<endl;
-	cout << strlen(payload)<<endl;
+
+	string three = DecodeRSAKeyFile("prikey.pem", two);  
+	cout<<"decry key:"<<three<<endl;	
+
 
 	memcpy((char*)userkey, aes_key, AES_BLOCK_SIZE);	
-	
 	memset((unsigned char*)iv1,'m',AES_BLOCK_SIZE);
 	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
 	
@@ -431,7 +433,7 @@ void negotiate_key(int fd) {
         fprintf(stderr,"client write 98 request error: %s\n",strerror(errno));
     }
     if(n != needbs) {
-        fprintf(stderr,"client write 98 request error, need %d, write %d \n",needbs, n);
+        fprintf(stderr,"client write 98 request error, need %ld, write %ld \n",needbs, n);
     }
     else {
         fprintf(stderr,"send 98 request success\n");
@@ -485,8 +487,6 @@ void do_keep_alive(Msg* msg, int fd) {
 }
 void process_ipv4_reply(Msg* msg) {
 	//decrypt
-	//
-	//
 	static unsigned char *decrypt_result = new unsigned char[4096];
 	memset((unsigned char*) decrypt_result, 0, msg->hdr.length);
 	memset((unsigned char*)iv2,'m',AES_BLOCK_SIZE);
@@ -506,5 +506,5 @@ void process_ipv4_reply(Msg* msg) {
 	ssize_t ret = Write_nByte(conf.tun_fd, (char*)(decrypt_result+sizeof(int32_t)), len);
     
 	
-	printf("write %d/%d bytes to tun,\n", ret, msg->hdr.length);
+	printf("write %ld/%d bytes to tun,\n", ret, msg->hdr.length);
 }

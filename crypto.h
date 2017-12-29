@@ -12,3 +12,5 @@ void AES_Decrypt(unsigned char* in, unsigned char* out,	size_t len, const AES_KE
 std::string EncodeRSAKeyFile( const std::string& strPemFileName, const std::string& strData );
 
 std::string DecodeRSAKeyFile( const std::string& strPemFileName, const std::string& strData );
+
+char* generatePriKey(int len);
