@@ -42,9 +42,45 @@ void process_packet(char* buffer , uint32_t size)
 
 
     memset(&msg, 0, sizeof(struct Msg));
-    msg.hdr.type = 103;
-    msg.hdr.length = size;
-    memcpy(msg.ipv4_payload, buffer, size);
+
+
+
+	static unsigned char *encrypt_result = new unsigned char[4096];
+	static uint8_t *to_encry_data = new uint8_t[4096]; 
+	
+	int32_t len = size;
+	*((int32_t*)to_encry_data) = len;
+	memcpy(to_encry_data+sizeof(int32_t), buffer, len);
+	len += sizeof(int32_t);
+
+	cout<<"before encry"<<endl;
+	for(int i =0 ; i < len; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
+			if(i%8 == 0)cout<<endl;
+	}
+	cout<<endl;
+
+	int32_t encry_len = len;
+	int32_t res = (len % AES_BLOCK_SIZE);
+	if(len != 0 && res != 0) {
+		encry_len += (AES_BLOCK_SIZE-res);
+	}
+	msg.hdr.type = 103;
+	msg.hdr.length = encry_len;
+	
+	memset((unsigned char*)info->iv1,'m',AES_BLOCK_SIZE);
+	memset((unsigned char*)encrypt_result, 0, 4096);
+	AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &info->en_key, info->iv1);
+	memcpy((char*)msg.ipv4_payload, encrypt_result, msg.hdr.length);
+
+	cout<<"encry result"<<endl;
+	for(int i =0 ; i < msg.hdr.length; ++i) {
+		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+		if(i%8 == 0)cout<<endl;
+	}
+	cout<<endl;
+
+
 
     int fd = info->fd;
     if(fd != -1)
@@ -99,7 +135,7 @@ void do_server(char* server_ip, char* server_port) {
     in_addr star;
     in_addr end;
     Inet_pton(AF_INET,"10.0.0.3",&star);
-    Inet_pton(AF_INET,"10.0.0.254",&end);
+    Inet_pton(AF_INET,"10.0.0.10",&end);
     user_tables.init_ipv4_pool(star, end);
 
     keep_alive_thread_argv argv;
