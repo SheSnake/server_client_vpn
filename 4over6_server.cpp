@@ -247,17 +247,17 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
             n = read(fd, ipv4_payload, msg.hdr.length);
             if(n != msg.hdr.length) {
                 if(n <= 0) {
-                    fprintf(stderr, "Read Payload Error, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
+                    fprintf(stderr, "Read Payload Error, Need %d byte, Read %ld Byte\n",msg.hdr.length, n);
                     Close(fd);
                     return -1;
                 }
             }
             else {
                 if(msg.hdr.type == 102)
-                    fprintf(stderr, "Read Payload ok, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
+                    fprintf(stderr, "Read Payload ok, Need %d byte, Read %ld Byte\n",msg.hdr.length, n);
             }
             while(n < msg.hdr.length) {
-                fprintf(stderr, "Payload Is Divided, Need %d byte, Read %d Byte\n",msg.hdr.length, n);
+                fprintf(stderr, "Payload Is Divided, Need %d byte, Read %ld Byte\n",msg.hdr.length, n);
                 n += read(fd, ipv4_payload + n, msg.hdr.length - n);
             }
         }
@@ -278,7 +278,7 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
             case 101:
                 break;
             case 102: {
-                fprintf(stderr, "Recv A 102 Request, PKT_LEN=%d, Read n=%d\n", msg.hdr.length, n);
+                fprintf(stderr, "Recv A 102 Request, PKT_LEN=%d, Read n=%ld\n", msg.hdr.length, n);
 
 //                char *buf = (char *) msg.ipv4_payload;
 //                char ip[4];
@@ -315,17 +315,17 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
 				
 				cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
                 
-				fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %d\n",msg.hdr.length, n);
+				fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %ld\n",msg.hdr.length, n);
                 do_keep_alive(fd);
                 break;
 			}
             default:
-                fprintf(stderr, "Recv A Error Reqeust %d %d %d\n",msg.hdr.type, msg.hdr.length, n);
+                fprintf(stderr, "Recv A Error Reqeust %d %d %ld\n",msg.hdr.type, msg.hdr.length, n);
                 break;
         }
     }
     else {// 读到长度小于头长度说明可能出错(也有可能粘包,继续读取)
-        fprintf(stderr, "Read %d byte, Recv an error hdr\n", n);
+        fprintf(stderr, "Read %ld byte, Recv an error hdr\n", n);
         while (n < sizeof(struct Msg_Hdr))
             n += read(fd, (char*)&msg + n , sizeof(struct Msg_Hdr)-n);
         fprintf(stderr, "Recv an error hdr\n");
@@ -421,7 +421,7 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
 	ssize_t n = sendto(rawfd, decrypt_result+sizeof(int32_t), len, 0, (SA*)&dstaddr, addr_len);
 
     if(n != len) {
-        fprintf(stderr, "write reply error, need %d byte, write %d byte\n",len, n);
+        fprintf(stderr, "write reply error, need %d byte, write %ld byte\n",len, n);
         if(n <= 0)
             return;
     }
