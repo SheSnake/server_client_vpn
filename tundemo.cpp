@@ -236,7 +236,7 @@ void* read_tun_thread(void* argv) {
 //        memcpy(&buf[16], ip, 4);
 //        buf[20] = 0;
 //        *((unsigned short*)&buf[22]) += 8;
-        printf("read %ld bytes\n", ret);
+//        printf("read from tun %ld bytes\n", ret);
 	
 		//encry
 		int32_t len = ret;
@@ -245,12 +245,12 @@ void* read_tun_thread(void* argv) {
 		len += sizeof(int32_t);
 
 
-		cout<<"before encry"<<endl;
-		for(int i =0 ; i < len; ++i) {
-			fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
-			if(i%8 == 0)cout<<endl;
-		}
-		cout<<endl;
+//		cout<<"before encry"<<endl;
+//		for(int i =0 ; i < len; ++i) {
+//			fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
+//			if(i%8 == 0)cout<<endl;
+//		}
+//		cout<<endl;
 
 		int32_t encry_len = len;
 		int32_t res = (len % AES_BLOCK_SIZE);
@@ -265,17 +265,15 @@ void* read_tun_thread(void* argv) {
 		AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &en_key, local_iv1);
 		memcpy((char*)msg.ipv4_payload, encrypt_result, msg.hdr.length);
 
-		cout<<"encry result"<<endl;
-		for(int i =0 ; i < msg.hdr.length; ++i) {
-			fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
-			if(i%8 == 0)cout<<endl;
-		}
-		cout<<endl;
+	//	cout<<"encry result"<<endl;
+	//	for(int i =0 ; i < msg.hdr.length; ++i) {
+	//		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+	//		if(i%8 == 0)cout<<endl;
+	//	}
+	//	cout<<endl;
         
 		
 		int ret = Write_nByte(conf->server_fd, (char*) &msg, sizeof(Msg_Hdr) + msg.hdr.length);
-//        ret = write(tun, buf, ret);
-        printf("write %d bytes\n", ret);
     }
 }
 
@@ -465,18 +463,19 @@ void process_ipv4_reply(Msg* msg) {
 	AES_Decrypt((unsigned char*)(msg->ipv4_payload), decrypt_result,
 			msg->hdr.length, &de_key, iv2);
 	int32_t len = *((int32_t*)decrypt_result);
-	cout<<"recev packet res, len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
-    
-	cout<<"decrypt packet result"<<endl;
-	for(int i =0 ; i < len; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
-		if(i%8 == 0)cout<<endl;
-	}
-	cout<<endl;
+	
+//	cout<<"recev packet res, len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
+//	
+//	cout<<"decrypt packet result"<<endl;
+//	for(int i =0 ; i < len; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)decrypt_result)+i));
+//		if(i%8 == 0)cout<<endl;
+//	}
+//	cout<<endl;
 
     
 	ssize_t ret = Write_nByte(conf.tun_fd, (char*)(decrypt_result+sizeof(int32_t)), len);
     
 	
-	printf("write %ld/%d bytes to tun,\n", ret, msg->hdr.length);
+//	printf("write %ld/%d bytes to tun,\n", ret, msg->hdr.length);
 }

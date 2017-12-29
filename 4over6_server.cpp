@@ -53,12 +53,12 @@ void process_packet(char* buffer , uint32_t size)
 	memcpy(to_encry_data+sizeof(int32_t), buffer, len);
 	len += sizeof(int32_t);
 
-	cout<<"before encry"<<endl;
-	for(int i =0 ; i < len; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
-			if(i%8 == 0)cout<<endl;
-	}
-	cout<<endl;
+//	cout<<"before encry"<<endl;
+//	for(int i =0 ; i < len; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)to_encry_data)+i));
+//			if(i%8 == 0)cout<<endl;
+//	}
+//	cout<<endl;
 
 	int32_t encry_len = len;
 	int32_t res = (len % AES_BLOCK_SIZE);
@@ -73,12 +73,12 @@ void process_packet(char* buffer , uint32_t size)
 	AES_Encrypt((unsigned char*)to_encry_data, encrypt_result, len, &info->en_key, info->iv1);
 	memcpy((char*)msg.ipv4_payload, encrypt_result, msg.hdr.length);
 
-	cout<<"encry result"<<endl;
-	for(int i =0 ; i < msg.hdr.length; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
-		if(i%8 == 0)cout<<endl;
-	}
-	cout<<endl;
+//	cout<<"encry result"<<endl;
+//	for(int i =0 ; i < msg.hdr.length; ++i) {
+//		fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
+//		if(i%8 == 0)cout<<endl;
+//	}
+//	cout<<endl;
 
 
 
@@ -300,22 +300,6 @@ int do_response(int fd, int rawfd, int i, struct sockaddr_in *client_addr, sockl
             }
             case 104: {
 				cout<<"recv an 104"<<endl;
-				for(int i =0 ; i < msg.hdr.length; ++i) {
-					fprintf(stderr,"%u ",*(((uint8_t*)msg.ipv4_payload)+i));
-				}
-				cout<<endl;
-
-
-				User_Info* info = user_tables.get_user_info_by_fd(fd);
-				static unsigned char *decrypt_result = new unsigned char[4096];
-				memset((unsigned char*)decrypt_result, 0, msg.hdr.length);
-				memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
-				AES_Decrypt((unsigned char*)(msg.ipv4_payload), decrypt_result,msg.hdr.length, &info->de_key, info->iv2);
-				int32_t len = *((int32_t*)decrypt_result);
-				
-				cout<<"len:"<<len<<" "<<(decrypt_result+sizeof(int32_t))<<endl;	
-                
-				fprintf(stderr,"Recv A 104 Live PKT_LEN=%d %ld\n",msg.hdr.length, n);
                 do_keep_alive(fd);
                 break;
 			}
@@ -430,17 +414,17 @@ void do_ipv4_packet_request(int fd, int rawfd, struct Msg* c_msg) {
 #include <iostream>
 using namespace std;
 int negotiate_to_client_ipv4(int fd, struct Msg* c_msg) {
-	cout<<"Recv encry key"<<endl;	
-	for(int i =0 ; i < 128; ++i) {
-		fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
-	}
-	cout<<endl;
+	//cout<<"Recv encry key"<<endl;	
+	//for(int i =0 ; i < 128; ++i) {
+	//	fprintf(stderr,"%u ",*(((uint8_t*)c_msg->ipv4_payload)+i));
+	//}
+	//cout<<endl;
 
 	string two = string(128, 0);
 	for(int i = 0; i < 128; ++i) {
 		two[i] = c_msg->ipv4_payload[i];
 	}
-	cout<<two.length()<<endl;
+	//cout<<two.length()<<endl;
 
 	string three = DecodeRSAKeyFile("prikey.pem", two);  
 	cout << "private decrypt key: " << three << endl;
@@ -453,7 +437,7 @@ int negotiate_to_client_ipv4(int fd, struct Msg* c_msg) {
 	}
 	else {
 		info->key = three;	
-		cout << "private decrypt: " << info->key << endl;
+	//	cout << "private decrypt: " << info->key << endl;
 		memset((unsigned char*)info->iv1,'m',AES_BLOCK_SIZE);
 		memset((unsigned char*)info->iv2,'m',AES_BLOCK_SIZE);
 		unsigned char* userkey = (unsigned char*)(info->key.c_str());
