@@ -1,5 +1,5 @@
 
-OBJS = main.o error_check.o tundemo.o 4over6_server.o 4over6_util.o keep_alive_thread.o crypto.o
+OBJS = main.o error_check.o client.o 4over6_server.o 4over6_util.o keep_alive_thread.o crypto.o
 HEAD = 4over6_util.h unp.h
 main: $(OBJS) $(HEAD)
 	g++ -o $@ $(OBJS) -lpthread -lcrypto 
