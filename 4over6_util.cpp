@@ -82,7 +82,7 @@ void User_Tables::init_ipv4_pool(in_addr start, in_addr end) {
 
         struct ifreq ifr;
         int fd, err;
-        char *clonedev = "/dev/net/tun";
+        char clonedev[] = "/dev/net/tun";
         if ((fd = open(clonedev, O_RDWR)) < 0) {
             fprintf(stderr," error:%s\n", strerror(errno));
             return ;
