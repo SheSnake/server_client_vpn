@@ -304,7 +304,6 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
     Bind_Socket(sockfd, (SA*)&client_addr, len);
     Socket_Peer_Connect(sockfd, (SA*)&server_addr, len);
 	request_ipv4(sockfd);
-    negotiate_key(sockfd);
     size_t msg_hdr_len = sizeof(struct Msg_Hdr);
     conf.server_fd = sockfd;
     while (1){
@@ -347,6 +346,7 @@ void do_client(char* server_ip, char* server_port, char* client_port, char* rout
                 case 101: //client recv ipv4 ip
                     process_ipv4_assign(&msg);
                     config_tun();
+					negotiate_key(sockfd);
                     break;
                 case 102: //client send ipv4 pkt
                     break;
